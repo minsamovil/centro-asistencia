@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+    <radialGradient id="wingL" cx="45%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#ff9ff3"/>
+      <stop offset="50%" stop-color="#f368e0"/>
+      <stop offset="100%" stop-color="#8e44ad"/>
+    </radialGradient>
+    <radialGradient id="wingR" cx="55%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#ff9ff3"/>
+      <stop offset="50%" stop-color="#f368e0"/>
+      <stop offset="100%" stop-color="#8e44ad"/>
+    </radialGradient>
+    <radialGradient id="wingLb" cx="45%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#feca57"/>
+      <stop offset="50%" stop-color="#ff9f43"/>
+      <stop offset="100%" stop-color="#ee5253"/>
+    </radialGradient>
+    <radialGradient id="wingRb" cx="55%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#feca57"/>
+      <stop offset="50%" stop-color="#ff9f43"/>
+      <stop offset="100%" stop-color="#ee5253"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="600" fill="#0b132b"/>
+
+  <!-- upper wings -->
+  <path d="M400 300 C 380 150, 250 120, 180 180 C 120 235, 160 320, 400 300 Z" fill="url(#wingL)" transform="rotate(0 400 300)"/>
+  <path d="M400 300 C 420 150, 550 120, 620 180 C 680 235, 640 320, 400 300 Z" fill="url(#wingR)"/>
+
+  <!-- lower wings -->
+  <path d="M400 310 C 360 320, 250 300, 210 380 C 185 440, 260 470, 400 320 Z" fill="url(#wingLb)"/>
+  <path d="M400 310 C 440 320, 550 300, 590 380 C 615 440, 540 470, 400 320 Z" fill="url(#wingRb)"/>
+
+  <!-- wing spots -->
+  <g fill="#ffffff" opacity="0.85">
+    <circle cx="300" cy="230" r="12"/>
+    <circle cx="500" cy="230" r="12"/>
+    <circle cx="340" cy="205" r="7"/>
+    <circle cx="460" cy="205" r="7"/>
+    <circle cx="280" cy="275" r="8"/>
+    <circle cx="520" cy="275" r="8"/>
+    <circle cx="290" cy="380" r="9"/>
+    <circle cx="510" cy="380" r="9"/>
+    <circle cx="260" cy="350" r="6"/>
+    <circle cx="540" cy="350" r="6"/>
+  </g>
+
+  <!-- body -->
+  <ellipse cx="400" cy="300" rx="14" ry="90" fill="#1a1a2e" stroke="#e2e2e2" stroke-width="2"/>
+  <!-- head -->
+  <circle cx="400" cy="195" r="22" fill="#1a1a2e" stroke="#e2e2e2" stroke-width="2"/>
+  <!-- antennae -->
+  <path d="M392 180 C 380 130, 350 120, 340 130" stroke="#e2e2e2" stroke-width="3" fill="none"/>
+  <path d="M408 180 C 420 130, 450 120, 460 130" stroke="#e2e2e2" stroke-width="3" fill="none"/>
+  <circle cx="340" cy="128" r="6" fill="#feca57"/>
+  <circle cx="460" cy="128" r="6" fill="#feca57"/>
+
+  <text x="400" y="560" font-family="Arial" font-size="28" fill="#e2e2e2" text-anchor="middle" opacity="0.8">Mariposa</text>
+</svg>
