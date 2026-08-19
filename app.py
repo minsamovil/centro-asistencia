@@ -45,7 +45,7 @@ def marcar():
     tipo = data.get("tipo")
     if not nombre:
         return jsonify({"error": "El nombre es obligatorio"}), 400
-    if tipo not in ("entrada", "salida"):
+    if tipo not in ("entrada", "salida", "salida_refrigerio", "retorno_refrigerio"):
         return jsonify({"error": "Tipo no válido"}), 400
 
     now = datetime.now()

@@ -26,6 +26,8 @@
         <div class="row">
           <input type="text" id="nombre-asistencia" placeholder="Tu nombre" autocomplete="off">
           <button class="btn btn-green" onclick="marcar('entrada')">Entrada</button>
+          <button class="btn btn-orange" onclick="marcar('salida_refrigerio')">Salida Refrigerio</button>
+          <button class="btn btn-orange" onclick="marcar('retorno_refrigerio')">Retorno Refrigerio</button>
           <button class="btn btn-red" onclick="marcar('salida')">Salida</button>
         </div>
       </div>
@@ -119,13 +121,20 @@
       cargarAsistencia();
     }
 
+    const TIPO_LABELS = {
+      entrada: "Entrada",
+      salida: "Salida",
+      salida_refrigerio: "Salida Refrigerio",
+      retorno_refrigerio: "Retorno Refrigerio"
+    };
+
     async function cargarAsistencia() {
       const registros = await api("/api/asistencia");
       const tb = document.getElementById("tabla-asistencia");
       tb.innerHTML = registros.map(r => `
         <tr>
           <td>${r.nombre}</td>
-          <td><span class="badge ${r.tipo}">${r.tipo}</span></td>
+          <td><span class="badge ${r.tipo}">${TIPO_LABELS[r.tipo] || r.tipo}</span></td>
           <td>${r.fecha}</td>
           <td>${r.hora}</td>
         </tr>`).join("");
