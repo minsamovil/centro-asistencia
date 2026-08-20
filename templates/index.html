@@ -174,7 +174,8 @@
       cargarAsistencia();
     }
 
-    function editarAsistencia(r) {
+    function editarAsistencia(encodedStr) {
+      var r = JSON.parse(decodeURIComponent(encodedStr));
       abrirModal("Editar asistencia", [
         { key: "nombre", label: "Nombre", value: r.nombre },
         { key: "tipo", label: "Tipo", type: "select", value: r.tipo, options: [
@@ -182,7 +183,7 @@
           {value:"salida_refrigerio",label:"Salida Refrigerio"},{value:"retorno_refrigerio",label:"Retorno Refrigerio"}
         ]},
         { key: "fecha", label: "Fecha", type: "date", value: r.fecha },
-        { key: "hora", label: "Hora", type: "time", value: r.hora }
+        { key: "hora", label: "Hora", type: "time", value: r.hora.substring(0, 5) }
       ], async function() {
         const data = {
           nombre: document.getElementById("modal-nombre").value.trim(),
@@ -235,7 +236,8 @@
       cargarTickets();
     }
 
-    function editarTicket(t) {
+    function editarTicket(encodedStr) {
+      var t = JSON.parse(decodeURIComponent(encodedStr));
       abrirModal("Editar ticket #" + t.id, [
         { key: "nombre", label: "Nombre", value: t.nombre },
         { key: "titulo", label: "Asunto", value: t.titulo },
@@ -244,7 +246,7 @@
           {value:"abierto",label:"Abierto"},{value:"cerrado",label:"Cerrado"}
         ]}
       ], async function() {
-        const data = {
+        var data = {
           nombre: document.getElementById("modal-nombre").value.trim(),
           titulo: document.getElementById("modal-titulo").value.trim(),
           mensaje: document.getElementById("modal-mensaje").value.trim(),
