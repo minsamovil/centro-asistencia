@@ -1,6 +1,8 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from io import BytesIO
+
+LIMA_TZ = timezone(timedelta(hours=-5))
 
 import requests
 from flask import Flask, Response, jsonify, render_template, request
@@ -85,7 +87,7 @@ def marcar():
     if tipo not in ("entrada", "salida", "salida_refrigerio", "retorno_refrigerio"):
         return jsonify({"error": "Tipo no válido"}), 400
 
-    now = datetime.now()
+    now = datetime.now(LIMA_TZ)
     record = {
         "nombre": nombre,
         "tipo": tipo,
@@ -110,7 +112,7 @@ def crear_ticket():
         "titulo": titulo,
         "mensaje": mensaje,
         "estado": "abierto",
-        "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "fecha": datetime.now(LIMA_TZ).strftime("%Y-%m-%d %H:%M:%S"),
     }
     result = supa_insert("tickets", ticket)
     return jsonify({"ok": True, "ticket": result[0] if result else ticket})
@@ -228,7 +230,7 @@ def exportar():
     wb.save(buf)
     buf.seek(0)
 
-    fecha = datetime.now().strftime("%Y%m%d_%H%M%S")
+    fecha = datetime.now(LIMA_TZ).strftime("%Y%m%d_%H%M%S")
     return Response(
         buf.getvalue(),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
