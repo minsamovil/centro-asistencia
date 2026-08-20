@@ -101,19 +101,21 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    let modalCallback = null;
+    var modalCallback = null;
+    var registrosCache = [];
+    var ticketsCache = [];
 
     function toast(msg, ok) {
-      const t = document.getElementById("toast");
+      var t = document.getElementById("toast");
       t.textContent = msg;
       t.className = "toast show " + (ok ? "ok" : "err");
       clearTimeout(t._timer);
-      t._timer = setTimeout(() => t.className = "toast", 3000);
+      t._timer = setTimeout(function() { t.className = "toast"; }, 3000);
     }
 
     async function api(url, opts) {
       try {
-        const r = await fetch(url, opts);
+        var r = await fetch(url, opts);
         return await r.json();
       } catch (e) {
         return { error: "Error de conexion: " + e.message };
@@ -122,12 +124,12 @@
 
     function abrirModal(title, fields, callback) {
       document.getElementById("modal-title").textContent = title;
-      const body = document.getElementById("modal-body");
-      body.innerHTML = fields.map(f => {
+      var body = document.getElementById("modal-body");
+      body.innerHTML = fields.map(function(f) {
         if (f.type === "select") {
-          const opts = f.options.map(o =>
-            '<option value="' + o.value + '"' + (o.value === f.value ? " selected" : "") + '>' + o.label + '</option>'
-          ).join("");
+          var opts = f.options.map(function(o) {
+            return '<option value="' + o.value + '"' + (o.value === f.value ? " selected" : "") + '>' + o.label + '</option>';
+          }).join("");
           return '<label>' + f.label + '</label><select id="modal-' + f.key + '">' + opts + '</select>';
         }
         return '<label>' + f.label + '</label><input type="' + (f.type || "text") + '" id="modal-' + f.key + '" value="' + (f.value || "") + '">';
@@ -146,12 +148,12 @@
     }
 
     async function marcar(tipo) {
-      const nombre = document.getElementById("nombre-asistencia").value.trim();
+      var nombre = document.getElementById("nombre-asistencia").value.trim();
       if (!nombre) return toast("Escribe tu nombre", false);
-      const res = await api("/api/marcar", {
+      var res = await api("/api/marcar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, tipo })
+        body: JSON.stringify({ nombre: nombre, tipo: tipo })
       });
       if (res.error) return toast(res.error, false);
       document.getElementById("nombre-asistencia").value = "";
@@ -159,7 +161,7 @@
       cargarAsistencia();
     }
 
-    const TIPO_LABELS = {
+    var TIPO_LABELS = {
       entrada: "Entrada",
       salida: "Salida",
       salida_refrigerio: "Salida Refrigerio",
@@ -168,14 +170,14 @@
 
     async function eliminarAsistencia(id) {
       if (!confirm("Eliminar este registro?")) return;
-      const res = await api("/api/asistencia/" + id, { method: "DELETE" });
+      var res = await api("/api/asistencia/" + id, { method: "DELETE" });
       if (res.error) return toast(res.error, false);
       toast("Registro eliminado", true);
       cargarAsistencia();
     }
 
-    function editarAsistencia(encodedStr) {
-      var r = JSON.parse(decodeURIComponent(encodedStr));
+    function editarAsistencia(idx) {
+      var r = registrosCache[idx];
       abrirModal("Editar asistencia", [
         { key: "nombre", label: "Nombre", value: r.nombre },
         { key: "tipo", label: "Tipo", type: "select", value: r.tipo, options: [
@@ -185,13 +187,13 @@
         { key: "fecha", label: "Fecha", type: "date", value: r.fecha },
         { key: "hora", label: "Hora", type: "time", value: r.hora.substring(0, 5) }
       ], async function() {
-        const data = {
+        var data = {
           nombre: document.getElementById("modal-nombre").value.trim(),
           tipo: document.getElementById("modal-tipo").value,
           fecha: document.getElementById("modal-fecha").value,
-          hora: document.getElementById("modal-hora").value
+          hora: document.getElementById("modal-hora").value + ":00"
         };
-        const res = await api("/api/asistencia/" + r.id, {
+        var res = await api("/api/asistencia/" + r.id, {
           method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(data)
         });
         if (res.error) return toast(res.error, false);
@@ -202,16 +204,17 @@
     }
 
     async function cargarAsistencia() {
-      const registros = await api("/api/asistencia");
-      const tb = document.getElementById("tabla-asistencia");
-      tb.innerHTML = registros.map(function(r) {
+      var registros = await api("/api/asistencia");
+      registrosCache = registros;
+      var tb = document.getElementById("tabla-asistencia");
+      tb.innerHTML = registros.map(function(r, i) {
         return '<tr>' +
           '<td>' + r.nombre + '</td>' +
           '<td><span class="badge ' + r.tipo + '">' + (TIPO_LABELS[r.tipo] || r.tipo) + '</span></td>' +
           '<td>' + r.fecha + '</td>' +
           '<td>' + r.hora + '</td>' +
           '<td class="acciones">' +
-            '<button class="btn btn-blue btn-sm" onclick="editarAsistencia(' + encodeURIComponent(JSON.stringify(r)).replace(/'/g,"&#39;") + ')">Editar</button> ' +
+            '<button class="btn btn-blue btn-sm" onclick="editarAsistencia(' + i + ')">Editar</button> ' +
             '<button class="btn btn-red btn-sm" onclick="eliminarAsistencia(' + r.id + ')">Eliminar</button>' +
           '</td>' +
         '</tr>';
@@ -219,14 +222,14 @@
     }
 
     async function crearTicket() {
-      const nombre = document.getElementById("nombre-ticket").value.trim();
-      const titulo = document.getElementById("titulo-ticket").value.trim();
-      const mensaje = document.getElementById("mensaje-ticket").value.trim();
+      var nombre = document.getElementById("nombre-ticket").value.trim();
+      var titulo = document.getElementById("titulo-ticket").value.trim();
+      var mensaje = document.getElementById("mensaje-ticket").value.trim();
       if (!nombre || !titulo || !mensaje) return toast("Completa todos los campos", false);
-      const res = await api("/api/ticket", {
+      var res = await api("/api/ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, titulo, mensaje })
+        body: JSON.stringify({ nombre: nombre, titulo: titulo, mensaje: mensaje })
       });
       if (res.error) return toast(res.error, false);
       document.getElementById("nombre-ticket").value = "";
@@ -236,8 +239,8 @@
       cargarTickets();
     }
 
-    function editarTicket(encodedStr) {
-      var t = JSON.parse(decodeURIComponent(encodedStr));
+    function editarTicket(idx) {
+      var t = ticketsCache[idx];
       abrirModal("Editar ticket #" + t.id, [
         { key: "nombre", label: "Nombre", value: t.nombre },
         { key: "titulo", label: "Asunto", value: t.titulo },
@@ -252,7 +255,7 @@
           mensaje: document.getElementById("modal-mensaje").value.trim(),
           estado: document.getElementById("modal-estado").value
         };
-        const res = await api("/api/ticket/" + t.id, {
+        var res = await api("/api/ticket/" + t.id, {
           method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(data)
         });
         if (res.error) return toast(res.error, false);
@@ -264,23 +267,24 @@
 
     async function eliminarTicket(id) {
       if (!confirm("Eliminar este ticket?")) return;
-      const res = await api("/api/ticket/" + id, { method: "DELETE" });
+      var res = await api("/api/ticket/" + id, { method: "DELETE" });
       if (res.error) return toast(res.error, false);
       toast("Ticket eliminado", true);
       cargarTickets();
     }
 
     async function cerrarTicket(id) {
-      const res = await api("/api/ticket/" + id + "/cerrar", { method: "POST" });
+      var res = await api("/api/ticket/" + id + "/cerrar", { method: "POST" });
       if (res.error) return toast(res.error, false);
       toast("Ticket cerrado", true);
       cargarTickets();
     }
 
     async function cargarTickets() {
-      const tickets = await api("/api/tickets");
-      const tb = document.getElementById("tabla-tickets");
-      tb.innerHTML = tickets.map(function(t) {
+      var tickets = await api("/api/tickets");
+      ticketsCache = tickets;
+      var tb = document.getElementById("tabla-tickets");
+      tb.innerHTML = tickets.map(function(t, i) {
         return '<tr>' +
           '<td>#' + t.id + '</td>' +
           '<td>' + t.titulo + '</td>' +
@@ -289,7 +293,7 @@
           '<td>' + t.fecha + '</td>' +
           '<td class="acciones">' +
             (t.estado === "abierto" ? '<button class="btn btn-grey btn-sm" onclick="cerrarTicket(' + t.id + ')">Cerrar</button> ' : '') +
-            '<button class="btn btn-blue btn-sm" onclick="editarTicket(' + encodeURIComponent(JSON.stringify(t)).replace(/'/g,"&#39;") + ')">Editar</button> ' +
+            '<button class="btn btn-blue btn-sm" onclick="editarTicket(' + i + ')">Editar</button> ' +
             '<button class="btn btn-red btn-sm" onclick="eliminarTicket(' + t.id + ')">Eliminar</button>' +
           '</td>' +
         '</tr>';
