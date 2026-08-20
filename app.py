@@ -45,6 +45,16 @@ def supa_update(table, data, filters):
     return r.json()
 
 
+def supa_delete(table, filters):
+    r = requests.delete(
+        f"{SUPABASE_URL}/rest/v1/{table}?{filters}",
+        headers=supa_headers(),
+        timeout=10,
+    )
+    r.raise_for_status()
+    return True
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -118,6 +128,48 @@ def cerrar_ticket(ticket_id):
     if not result:
         return jsonify({"error": "Ticket no encontrado"}), 404
     return jsonify({"ok": True})
+
+
+@app.route("/api/asistencia/<int:record_id>", methods=["DELETE"])
+def eliminar_asistencia(record_id):
+    supa_delete("asistencia", f"id=eq.{record_id}")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/asistencia/<int:record_id>", methods=["PUT"])
+def editar_asistencia(record_id):
+    data = request.get_json(silent=True) or {}
+    nombre = (data.get("nombre") or "").strip()
+    tipo = data.get("tipo")
+    fecha = (data.get("fecha") or "").strip()
+    hora = (data.get("hora") or "").strip()
+    if not nombre or not tipo or not fecha or not hora:
+        return jsonify({"error": "Todos los campos son obligatorios"}), 400
+    result = supa_update("asistencia", {"nombre": nombre, "tipo": tipo, "fecha": fecha, "hora": hora}, f"id=eq.{record_id}")
+    if not result:
+        return jsonify({"error": "Registro no encontrado"}), 404
+    return jsonify({"ok": True, "record": result[0]})
+
+
+@app.route("/api/ticket/<int:ticket_id>", methods=["DELETE"])
+def eliminar_ticket(ticket_id):
+    supa_delete("tickets", f"id=eq.{ticket_id}")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ticket/<int:ticket_id>", methods=["PUT"])
+def editar_ticket(ticket_id):
+    data = request.get_json(silent=True) or {}
+    nombre = (data.get("nombre") or "").strip()
+    titulo = (data.get("titulo") or "").strip()
+    mensaje = (data.get("mensaje") or "").strip()
+    estado = (data.get("estado") or "").strip()
+    if not nombre or not titulo or not mensaje:
+        return jsonify({"error": "Todos los campos son obligatorios"}), 400
+    result = supa_update("tickets", {"nombre": nombre, "titulo": titulo, "mensaje": mensaje, "estado": estado}, f"id=eq.{ticket_id}")
+    if not result:
+        return jsonify({"error": "Ticket no encontrado"}), 404
+    return jsonify({"ok": True, "ticket": result[0]})
 
 
 @app.route("/api/exportar", methods=["GET"])
