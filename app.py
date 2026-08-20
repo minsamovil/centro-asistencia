@@ -9,8 +9,8 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 app = Flask(__name__)
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
 
 
 def supa_headers():
@@ -48,6 +48,15 @@ def supa_update(table, data, filters):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/api/health")
+def health():
+    return jsonify({
+        "url_set": bool(SUPABASE_URL),
+        "key_set": bool(SUPABASE_KEY),
+        "url_preview": SUPABASE_URL[:30] if SUPABASE_URL else "",
+    })
 
 
 @app.route("/api/asistencia", methods=["GET"])
