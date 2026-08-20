@@ -1,29 +1,48 @@
-import json
 import os
 from datetime import datetime
+from io import BytesIO
 
+import requests
 from flask import Flask, Response, jsonify, render_template, request
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 app = Flask(__name__)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
-ASISTENCIA_FILE = os.path.join(DATA_DIR, "asistencia.json")
-TICKETS_FILE = os.path.join(DATA_DIR, "tickets.json")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
 
-def load_json(path, default):
-    if not os.path.exists(path):
-        return default
-    with open(path, "r", encoding="utf-8-sig") as f:
-        return json.load(f)
+def supa_headers():
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
 
 
-def save_json(path, data):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+def supa_get(table, params=""):
+    r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}{params}", headers=supa_headers(), timeout=10)
+    r.raise_for_status()
+    return r.json()
+
+
+def supa_insert(table, data):
+    r = requests.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=supa_headers(), json=data, timeout=10)
+    r.raise_for_status()
+    return r.json()
+
+
+def supa_update(table, data, filters):
+    r = requests.patch(
+        f"{SUPABASE_URL}/rest/v1/{table}?{filters}",
+        headers=supa_headers(),
+        json=data,
+        timeout=10,
+    )
+    r.raise_for_status()
+    return r.json()
 
 
 @app.route("/")
@@ -33,8 +52,7 @@ def index():
 
 @app.route("/api/asistencia", methods=["GET"])
 def get_asistencia():
-    records = load_json(ASISTENCIA_FILE, [])
-    records.reverse()
+    records = supa_get("asistencia", "?order=created_at.desc")
     return jsonify(records)
 
 
@@ -55,10 +73,8 @@ def marcar():
         "fecha": now.strftime("%Y-%m-%d"),
         "hora": now.strftime("%H:%M:%S"),
     }
-    records = load_json(ASISTENCIA_FILE, [])
-    records.append(record)
-    save_json(ASISTENCIA_FILE, records)
-    return jsonify({"ok": True, "record": record})
+    result = supa_insert("asistencia", record)
+    return jsonify({"ok": True, "record": result[0] if result else record})
 
 
 @app.route("/api/ticket", methods=["POST"])
@@ -70,36 +86,29 @@ def crear_ticket():
     if not nombre or not titulo or not mensaje:
         return jsonify({"error": "Todos los campos son obligatorios"}), 400
 
-    tickets = load_json(TICKETS_FILE, [])
     ticket = {
-        "id": len(tickets) + 1,
         "nombre": nombre,
         "titulo": titulo,
         "mensaje": mensaje,
         "estado": "abierto",
         "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
-    tickets.append(ticket)
-    save_json(TICKETS_FILE, tickets)
-    return jsonify({"ok": True, "ticket": ticket})
+    result = supa_insert("tickets", ticket)
+    return jsonify({"ok": True, "ticket": result[0] if result else ticket})
 
 
 @app.route("/api/tickets", methods=["GET"])
 def get_tickets():
-    tickets = load_json(TICKETS_FILE, [])
-    tickets.reverse()
+    tickets = supa_get("tickets", "?order=created_at.desc")
     return jsonify(tickets)
 
 
 @app.route("/api/ticket/<int:ticket_id>/cerrar", methods=["POST"])
 def cerrar_ticket(ticket_id):
-    tickets = load_json(TICKETS_FILE, [])
-    for t in tickets:
-        if t["id"] == ticket_id:
-            t["estado"] = "cerrado"
-            save_json(TICKETS_FILE, tickets)
-            return jsonify({"ok": True})
-    return jsonify({"error": "Ticket no encontrado"}), 404
+    result = supa_update("tickets", {"estado": "cerrado"}, f"id=eq.{ticket_id}")
+    if not result:
+        return jsonify({"error": "Ticket no encontrado"}), 404
+    return jsonify({"ok": True})
 
 
 @app.route("/api/exportar", methods=["GET"])
@@ -109,11 +118,8 @@ def exportar():
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill(start_color="2D2D56", end_color="2D2D56", fill_type="solid")
     header_align = Alignment(horizontal="center")
-    border = Border(
-        bottom=Side(style="thin", color="CCCCCC"),
-    )
+    border = Border(bottom=Side(style="thin", color="CCCCCC"))
 
-    # Hoja Asistencia
     ws1 = wb.active
     ws1.title = "Asistencia"
     ws1.append(["Nombre", "Tipo", "Fecha", "Hora"])
@@ -122,7 +128,7 @@ def exportar():
         cell.fill = header_fill
         cell.alignment = header_align
 
-    records = load_json(ASISTENCIA_FILE, [])
+    records = supa_get("asistencia", "?order=created_at.desc")
     for r in records:
         ws1.append([r["nombre"], r["tipo"], r["fecha"], r["hora"]])
 
@@ -131,11 +137,10 @@ def exportar():
             cell.border = border
 
     ws1.column_dimensions["A"].width = 20
-    ws1.column_dimensions["B"].width = 12
+    ws1.column_dimensions["B"].width = 20
     ws1.column_dimensions["C"].width = 15
     ws1.column_dimensions["D"].width = 12
 
-    # Hoja Tickets
     ws2 = wb.create_sheet("Tickets")
     ws2.append(["ID", "Nombre", "Asunto", "Mensaje", "Estado", "Fecha"])
     for cell in ws2[1]:
@@ -143,7 +148,7 @@ def exportar():
         cell.fill = header_fill
         cell.alignment = header_align
 
-    tickets = load_json(TICKETS_FILE, [])
+    tickets = supa_get("tickets", "?order=created_at.desc")
     for t in tickets:
         ws2.append([t["id"], t["nombre"], t["titulo"], t["mensaje"], t["estado"], t["fecha"]])
 
@@ -158,8 +163,6 @@ def exportar():
     ws2.column_dimensions["E"].width = 12
     ws2.column_dimensions["F"].width = 20
 
-    buf = Workbook.__call__  # dummy, we just need BytesIO
-    from io import BytesIO
     buf = BytesIO()
     wb.save(buf)
     buf.seek(0)
